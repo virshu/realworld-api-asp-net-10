@@ -3,23 +3,18 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RealWorld.Models.DTOs.Articles;
 using RealWorld.Extensions;
+using RealWorld.Common;
 
 namespace RealWorld.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
-public class ArticlesController : ApiControllerBase
+public class ArticlesController(
+    IArticleService articleService
+    ) : ApiControllerBase
 {
-    private readonly IArticleService _articleService;
-
-    public ArticlesController
-    (
-        IArticleService articleService
-    )
-    {
-        _articleService = articleService;
-    }
+    private readonly IArticleService _articleService = articleService;
 
     /// <summary>
     /// Returns a paginated list of articles, optionally filtered by the author, tags or its favorited status for the user
@@ -33,7 +28,7 @@ public class ArticlesController : ApiControllerBase
     [HttpGet("")]
     public async Task<ActionResult> List([FromQuery] ArticleQueryParameters query)
     {
-        var result = await _articleService.GetArticlesAsync(query, userId: User.GetOptionalUserId());
+        ServiceResult<ArticleListResponse> result = await _articleService.GetArticlesAsync(query, userId: User.GetOptionalUserId());
         return HandleResult(result);
     }
 
@@ -49,7 +44,7 @@ public class ArticlesController : ApiControllerBase
     [HttpGet("feed")]
     public async Task<ActionResult> Feed([FromQuery] ArticleQueryParameters query)
     {
-        var result = await _articleService.GetArticlesAsync(query, isFeed: true, userId: User.GetRequiredUserId());
+        ServiceResult<ArticleListResponse> result = await _articleService.GetArticlesAsync(query, isFeed: true, userId: User.GetRequiredUserId());
         return HandleResult(result);
     }
 
@@ -61,7 +56,7 @@ public class ArticlesController : ApiControllerBase
     [HttpGet("{slug}")]
     public async Task<ActionResult> GetArticle(string slug)
     {
-        var result = await _articleService.GetArticleBySlugAsync(slug, User.GetRequiredUserId());
+        ServiceResult<ArticleResponse?> result = await _articleService.GetArticleBySlugAsync(slug, User.GetRequiredUserId());
         return HandleResult(result);
     }
 
@@ -71,7 +66,7 @@ public class ArticlesController : ApiControllerBase
     [HttpPost("")]
     public async Task<ActionResult> CreateArticle(CreateArticleRequest request)
     {
-        var result = await _articleService.CreateAsync(request.article, User.GetRequiredUserId());
+        ServiceResult<ArticleResponse> result = await _articleService.CreateAsync(request.article, User.GetRequiredUserId());
         return HandleResult(result);
     }
 
@@ -81,7 +76,7 @@ public class ArticlesController : ApiControllerBase
     [HttpPut("{slug}")]
     public async Task<ActionResult> UpdateArticle(string slug, UpdateArticleRequest request)
     {
-        var result = await _articleService.UpdateAsync(slug, request.article, User.GetRequiredUserId());
+        ServiceResult<ArticleResponse?> result = await _articleService.UpdateAsync(slug, request.article, User.GetRequiredUserId());
         return HandleResult(result);
     }
 
@@ -91,7 +86,7 @@ public class ArticlesController : ApiControllerBase
     [HttpDelete("{slug}")]
     public async Task<ActionResult> DeleteArticle(string slug)
     {
-        var result = await _articleService.DeleteAsync(slug, User.GetRequiredUserId());
+        ServiceResult<bool> result = await _articleService.DeleteAsync(slug, User.GetRequiredUserId());
         return HandleResult(result);
     }
 
@@ -101,7 +96,7 @@ public class ArticlesController : ApiControllerBase
     [HttpPost("{slug}/favorite")]
     public async Task<ActionResult> FavoriteArticle(string slug)
     {
-        var result = await _articleService.FavoriteArticleAsync(slug, User.GetRequiredUserId());
+        ServiceResult<ArticleResponse?> result = await _articleService.FavoriteArticleAsync(slug, User.GetRequiredUserId());
         return HandleResult(result);
     }
 
@@ -111,7 +106,7 @@ public class ArticlesController : ApiControllerBase
     [HttpDelete("{slug}/favorite")]
     public async Task<ActionResult> UnfavoriteArticle(string slug)
     {
-        var result = await _articleService.UnfavoriteArticleAsync(slug, User.GetRequiredUserId());
+        ServiceResult<ArticleResponse?> result = await _articleService.UnfavoriteArticleAsync(slug, User.GetRequiredUserId());
         return HandleResult(result);
     }
 }

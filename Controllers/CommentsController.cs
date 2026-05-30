@@ -3,23 +3,18 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RealWorld.Models.DTOs.Comments;
 using RealWorld.Extensions;
+using RealWorld.Common;
 
 namespace RealWorld.Controllers;
 
 [Route("api/articles")]
 [ApiController]
 [Authorize]
-public class CommentsController : ApiControllerBase
+public class CommentsController(
+    ICommentService commentService
+    ) : ApiControllerBase
 {
-    private readonly ICommentService _commentService;
-
-    public CommentsController
-    (
-        ICommentService commentService
-    )
-    {
-        _commentService = commentService;
-    }
+    private readonly ICommentService _commentService = commentService;
 
     /// <summary>
     /// Returns all comments for a given article
@@ -29,7 +24,7 @@ public class CommentsController : ApiControllerBase
     [HttpGet("{slug}/comments")]
     public async Task<ActionResult> GetComments(string slug)
     {
-        var result = await _commentService.GetCommentsForArticleAsync(slug, User.GetOptionalUserId());
+        ServiceResult<CommentListResponse?> result = await _commentService.GetCommentsForArticleAsync(slug, User.GetOptionalUserId());
         return HandleResult(result);
     }
 
@@ -40,7 +35,7 @@ public class CommentsController : ApiControllerBase
     [HttpPost("{slug}/comments")]
     public async Task<ActionResult> CreateComment(CreateCommentRequest request, string slug)
     {
-        var result = await _commentService.CreateAsync(request.comment, slug, User.GetRequiredUserId());
+        ServiceResult<CommentResponse?> result = await _commentService.CreateAsync(request.comment, slug, User.GetRequiredUserId());
         return HandleResult(result);
     }
 
@@ -52,7 +47,7 @@ public class CommentsController : ApiControllerBase
     [HttpDelete("{slug}/comments/{id}")]
     public async Task<ActionResult> DeleteComment(string slug, int id)
     {
-        var result = await _commentService.DeleteAsync(id, User.GetRequiredUserId());
+        ServiceResult<bool> result = await _commentService.DeleteAsync(id, User.GetRequiredUserId());
         return HandleResult(result);
     }
 }

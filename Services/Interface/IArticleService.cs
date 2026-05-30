@@ -1,7 +1,5 @@
 using RealWorld.Common;
-using RealWorld.Models.DTOs;
 using RealWorld.Models.DTOs.Articles;
-using RealWorld.Models.Entities;
 
 namespace RealWorld.Services.Interface;
 

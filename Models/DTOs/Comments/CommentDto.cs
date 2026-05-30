@@ -1,4 +1,3 @@
-using RealWorld.Models.Entities;
 using RealWorld.Models.DTOs.Articles;
 
 namespace RealWorld.Models.DTOs.Comments;

@@ -9,19 +9,10 @@ using RealWorld.Common;
 namespace RealWorld.Services;
 
 
-public class ArticleService : IArticleService {
-
-    private readonly AppDbContext _context;
-    private readonly IFileService _fileService;
-
-    public ArticleService(
-        AppDbContext context,
-        IFileService fileService
-    )
-    {
-        _context = context;
-        _fileService = fileService;
-    }
+public class ArticleService(
+    AppDbContext context,
+    IFileService fileService   
+    ) : IArticleService {
 
     public async Task<ServiceResult<ArticleListResponse>> GetArticlesAsync(
         ArticleQueryParameters query, 
@@ -29,7 +20,7 @@ public class ArticleService : IArticleService {
         int? userId = null
     )
     {
-        var articlesQuery = _context.Articles
+        IQueryable<Article> articlesQuery = context.Articles
             .Include(a => a.Author)
                 .ThenInclude(a => a.Followers)
             .Include(a => a.TagList)
@@ -59,14 +50,14 @@ public class ArticleService : IArticleService {
             
         }
 
-        var articleCount = await articlesQuery.CountAsync();
-        var articles = await articlesQuery
+        int articleCount = await articlesQuery.CountAsync();
+        List<Article> articles = await articlesQuery
             .OrderByDescending(a => a.CreatedAt)
             .Skip(query.Offset)
             .Take(query.Limit)
             .ToListAsync();
 
-        var returnArticles = articles.Select(
+        IEnumerable<ArticleDto> returnArticles = articles.Select(
             a =>
             {
                 bool isFavorited = false;
@@ -81,7 +72,7 @@ public class ArticleService : IArticleService {
             }
         );
 
-        var response = new ArticleListResponse(
+        ArticleListResponse response = new(
             returnArticles, 
             articleCount
         );
@@ -90,8 +81,8 @@ public class ArticleService : IArticleService {
 
     public async Task<ServiceResult<ArticleResponse?>> GetArticleBySlugAsync(string slug, int? userId)
     {
-        var article = await _context.Articles
-            .Include(a => a.Author)
+        Article? article = await context.Articles
+            .Include(a => a.Author).ThenInclude(user => user.Followers)
             .Include(a => a.FavoritedBy)
             .AsNoTracking()
             .FirstOrDefaultAsync(a => a.Slug == slug);
@@ -108,20 +99,20 @@ public class ArticleService : IArticleService {
             isFollowing = article.Author.Followers.FirstOrDefault(u => u.Id == userId) != null;
             isFavorited = article.FavoritedBy.FirstOrDefault(u => u.Id == userId) != null;
         }
-        
-        var dto = ArticleDtoFactory(article, isFavorited, isFollowing);
-        var response = new ArticleResponse(dto);
+
+        ArticleDto dto = ArticleDtoFactory(article, isFavorited, isFollowing);
+        ArticleResponse response = new(dto);
 
         return ServiceResult<ArticleResponse?>.Ok(response);
     }
 
     public async Task<ServiceResult<ArticleResponse>> CreateAsync(CreateArticleDto dto, int userId)
     {
-        var currentUser = _context.Users.Find(userId);
+        User? currentUser = await context.Users.FindAsync(userId);
         
         string slug = await SlugifyAsync(dto.Title);
 
-        Article article = new Article
+        Article article = new()
         {
             Title = dto.Title,
             Description = dto.Description,
@@ -132,28 +123,28 @@ public class ArticleService : IArticleService {
         
         if(dto.TagList.Any())
         {
-            var incomingTags = dto.TagList.Select(t => t.ToLower()).Distinct().ToList();
-            var existingTags = await _context.Tags
+            List<string> incomingTags = dto.TagList.Select(t => t.ToLower()).Distinct().ToList();
+            List<Tag> existingTags = await context.Tags
                 .Where(t => incomingTags.Contains(t.TagText))
                 .ToListAsync();
-            
-            var existingTagNames = existingTags.Select(t => t.TagText).ToList();
-            var newTagNames = dto.TagList.Except(existingTagNames);
 
-            var newTags = newTagNames.Select(name => new Tag {TagText = name}).ToList();
+            List<string> existingTagNames = existingTags.Select(t => t.TagText).ToList();
+            IEnumerable<string> newTagNames = dto.TagList.Except(existingTagNames);
+
+            List<Tag> newTags = newTagNames.Select(name => new Tag {TagText = name}).ToList();
             article.TagList = existingTags.Concat(newTags).ToList();
         }
 
         // The user automatically favorites their own article
         article.FavoritedBy.Add(currentUser!);
 
-        _context.Articles.Add(article);
-        await _context.SaveChangesAsync();
+        context.Articles.Add(article);
+        await context.SaveChangesAsync();
 
-        await _context.Entry(article).Reference(a => a.Author).LoadAsync();
+        await context.Entry(article).Reference(a => a.Author).LoadAsync();
 
-        var data = ArticleDtoFactory(article, true, false);
-        var response = new ArticleResponse(data);
+        ArticleDto data = ArticleDtoFactory(article, true, false);
+        ArticleResponse response = new(data);
 
         return ServiceResult<ArticleResponse>.Ok(response);
     }
@@ -164,7 +155,7 @@ public class ArticleService : IArticleService {
         int userId
     )
     {
-        var article = await _context.Articles
+        Article? article = await context.Articles
             .Include(a => a.Author)
             .Include(a => a.FavoritedBy)
             .Where(a => a.Slug == slug)
@@ -194,19 +185,19 @@ public class ArticleService : IArticleService {
             article.Body = dto.Body;
         }
 
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
 
         bool isFavorited = article.FavoritedBy.FirstOrDefault(u => u.Id == userId) != null;
 
-        var articleDto = ArticleDtoFactory(article, isFavorited, false);
-        var response = new ArticleResponse(articleDto);
+        ArticleDto articleDto = ArticleDtoFactory(article, isFavorited, false);
+        ArticleResponse response = new(articleDto);
 
         return ServiceResult<ArticleResponse?>.Ok(response);
     }
 
     public async Task<ServiceResult<bool>> DeleteAsync(string slug, int userId)
     {
-        var authorId = await _context.Articles
+        int? authorId = await context.Articles
             .Where(a => a.Slug == slug)
             .Select(a => (int?)a.AuthorId)
             .FirstOrDefaultAsync();
@@ -219,7 +210,7 @@ public class ArticleService : IArticleService {
             return ServiceResult<bool>.Unauthorized("You do not have permission to delete this article");
         }
 
-        await _context.Articles
+        await context.Articles
             .Where(a => a.Slug == slug)
             .ExecuteDeleteAsync();
 
@@ -228,8 +219,8 @@ public class ArticleService : IArticleService {
 
     public async Task<ServiceResult<ArticleResponse?>> FavoriteArticleAsync(string slug, int userId)
     {
-        var article = await _context.Articles
-            .Include(a => a.Author)
+        Article? article = await context.Articles
+            .Include(a => a.Author).ThenInclude(user => user.Followers)
             .Include(a => a.TagList)
             .Include(a => a.FavoritedBy)
             .FirstOrDefaultAsync(a => a.Slug == slug);
@@ -239,24 +230,24 @@ public class ArticleService : IArticleService {
             return ServiceResult<ArticleResponse?>.NotFound($"Article with slug '{slug}' was not found.");
         }
 
-        if(!article.FavoritedBy.Any(u => u.Id == userId))
+        if(article.FavoritedBy.All(u => u.Id != userId))
         {
-            var user = await _context.Users.FindAsync(userId);
+            User? user = await context.Users.FindAsync(userId);
             article.FavoritedBy.Add(user!);
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
         }
         bool isFollowing = article.Author.Followers.FirstOrDefault(u => u.Id == userId) != null;
-        
-        var dto = ArticleDtoFactory(article, true, isFollowing);
-        var response = new ArticleResponse(dto);
+
+        ArticleDto dto = ArticleDtoFactory(article, true, isFollowing);
+        ArticleResponse response = new(dto);
 
         return ServiceResult<ArticleResponse?>.Ok(response);
     }
 
     public async Task<ServiceResult<ArticleResponse?>> UnfavoriteArticleAsync(string slug, int userId)
     {
-        var article = await _context.Articles
-            .Include(a => a.Author)
+        Article? article = await context.Articles
+            .Include(a => a.Author).ThenInclude(user => user.Followers)
             .Include(a => a.TagList)
             .Include(a => a.FavoritedBy)
             .FirstOrDefaultAsync(a => a.Slug == slug);
@@ -268,26 +259,26 @@ public class ArticleService : IArticleService {
 
         if(article!.FavoritedBy.Any(u => u.Id == userId))
         {
-            var user = await _context.Users.FindAsync(userId);
+            User? user = await context.Users.FindAsync(userId);
             article.FavoritedBy.Remove(user!);
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
         }
         bool isFollowing = article.Author.Followers.FirstOrDefault(u => u.Id == userId) != null;
 
-        var dto = ArticleDtoFactory(article, false, isFollowing);
-        var response = new ArticleResponse(dto);
+        ArticleDto dto = ArticleDtoFactory(article, false, isFollowing);
+        ArticleResponse response = new(dto);
 
         return ServiceResult<ArticleResponse?>.Ok(response);
     }
 
     private ArticleDto ArticleDtoFactory(Article article, bool isFavorited, bool isFollowing)
     {
-        var a = article.Adapt<ArticleDto>();
+        ArticleDto a = article.Adapt<ArticleDto>();
         a.Favorited = isFavorited;
         a.Author.Following = isFollowing;
-        
+
         // Manufacture the profile image URL
-        var absoluteFileUrl = _fileService.GetAbsoluteFileUrl(article.Author.Image);
+        string? absoluteFileUrl = fileService.GetAbsoluteFileUrl(article.Author.Image);
         a.Author.Image = absoluteFileUrl;
 
         return a;
@@ -297,11 +288,11 @@ public class ArticleService : IArticleService {
     {
         string slug = text.Replace(' ', '-').ToLower();
 
-        bool slugExists = await _context.Articles.AnyAsync(a => a.Slug == slug);
+        bool slugExists = await context.Articles.AnyAsync(a => a.Slug == slug);
 
         if(slugExists)
         {
-            var randomSuffix = Guid.NewGuid().ToString().Substring(0, 6);
+            string randomSuffix = Guid.NewGuid().ToString().Substring(0, 6);
             slug = $"{slug}-{randomSuffix}";
         }
         return slug;

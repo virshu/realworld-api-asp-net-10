@@ -1,4 +1,5 @@
 using FluentValidation;
+using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -8,27 +9,23 @@ public class AutoValidationFilter : IAsyncActionFilter
 {
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
-        foreach (var argument in context.ActionArguments.Values.Where(v => v != null))
+        foreach (object? argument in context.ActionArguments.Values.Where(v => v != null))
         {
-            var argumentType = argument!.GetType();
-            
-            var validatorType = typeof(IValidator<>).MakeGenericType(argumentType);
-            var validator = context.HttpContext.RequestServices.GetService(validatorType) as IValidator;
+            Type argumentType = argument!.GetType();
 
-            if (validator != null)
-            {
-                var validationContext = new ValidationContext<object>(argument);
-                var validationResult = await validator.ValidateAsync(validationContext);
+            Type validatorType = typeof(IValidator<>).MakeGenericType(argumentType);
+            IValidator? validator = context.HttpContext.RequestServices.GetService(validatorType) as IValidator;
 
-                if (!validationResult.IsValid)
-                {
-                    context.Result = new UnprocessableEntityObjectResult(
-                        new { errors = validationResult.ToDictionary() }
-                    );
+            if (validator == null) continue;
+            ValidationContext<object> validationContext = new(argument);
+            ValidationResult validationResult = await validator.ValidateAsync(validationContext);
+
+            if (validationResult.IsValid) continue;
+            context.Result = new UnprocessableEntityObjectResult(
+                new { errors = validationResult.ToDictionary() }
+            );
                     
-                    return;
-                }
-            }
+            return;
         }
 
         await next();

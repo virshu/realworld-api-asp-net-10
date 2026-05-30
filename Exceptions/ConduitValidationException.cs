@@ -1,10 +1,6 @@
 namespace RealWorld.Exceptions;
 
-public class ConduitValidationException : Exception
+public class ConduitValidationException(string field, string message) : Exception(message)
 {
-    public string Field { get; }
-    public ConduitValidationException(string field, string message) : base(message)
-    {
-        Field = field;
-    }
+    public string Field { get; } = field;
 }

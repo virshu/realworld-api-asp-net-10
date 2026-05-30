@@ -12,20 +12,20 @@ using RealWorld.Models.Validators.Filters;
 using RealWorld.Middleware;
 using RealWorld.Settings;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 MapsterConfig.RegisterMappings();
 
 // Add services to the container.
 
 // Add JWT authentication setup
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]!);
+IConfigurationSection jwtSettings = builder.Configuration.GetSection("JwtSettings");
+byte[] secretKey = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]!);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.TokenValidationParameters = new TokenValidationParameters
+        options.TokenValidationParameters = new()
         {
             ValidateIssuer = true,
             ValidateAudience = true,
@@ -37,11 +37,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
 
         // Add "Token token" support
-        options.Events = new JwtBearerEvents
+        options.Events = new()
         {
             OnMessageReceived = context =>
             {
-                var authHeader = context.Request.Headers.Authorization.FirstOrDefault();
+                string? authHeader = context.Request.Headers.Authorization.FirstOrDefault();
 
                 if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Token "))
                 {
@@ -64,7 +64,7 @@ builder.Services.AddControllers(options =>
     });
 
 // Add database support
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+string? connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySQL(connectionString));
     
@@ -97,7 +97,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

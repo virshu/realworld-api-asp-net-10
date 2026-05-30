@@ -3,24 +3,19 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RealWorld.Models.DTOs.Profiles;
 using RealWorld.Extensions;
+using RealWorld.Common;
 
 namespace RealWorld.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
-public class ProfilesController : ApiControllerBase
+public class ProfilesController(
+    IProfileService profileService
+    ) : ApiControllerBase
 {
-    private IProfileService _profileService;
+    private IProfileService _profileService = profileService;
 
-    public ProfilesController
-    (
-        IProfileService profileService
-    )
-    {
-        _profileService = profileService;
-    }
-    
     /// <summary>
     /// Returns a profile based on the username
     /// </summary>
@@ -29,7 +24,7 @@ public class ProfilesController : ApiControllerBase
     [HttpGet("{username}")]
     public async Task<ActionResult<ProfileResponse>> GetProfile(string username)
     {
-        var result = await _profileService.GetProfileByUsernameAsync(username, User.GetOptionalUserId());
+        ServiceResult<ProfileResponse?> result = await _profileService.GetProfileByUsernameAsync(username, User.GetOptionalUserId());
         return HandleResult(result);
     }
 
@@ -40,7 +35,7 @@ public class ProfilesController : ApiControllerBase
     [HttpPost("{username}/follow")]
     public async Task<ActionResult<ProfileResponse>> Follow(string username)
     {
-        var result = await _profileService.FollowUserAsync(username, User.GetRequiredUserId());
+        ServiceResult<ProfileResponse?> result = await _profileService.FollowUserAsync(username, User.GetRequiredUserId());
         return HandleResult(result);
     }
 
@@ -51,7 +46,7 @@ public class ProfilesController : ApiControllerBase
     [HttpDelete("{username}/follow")]
     public async Task<ActionResult<ProfileResponse>> Unfollow(string username)
     {
-        var result = await _profileService.UnfollowUserAsync(username, User.GetRequiredUserId());
+        ServiceResult<ProfileResponse?> result = await _profileService.UnfollowUserAsync(username, User.GetRequiredUserId());
         return HandleResult(result);
     }
 

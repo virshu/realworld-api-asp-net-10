@@ -3,26 +3,18 @@ using RealWorld.Services.Interface;
 using Microsoft.EntityFrameworkCore;
 using RealWorld.Common;
 using RealWorld.Models.DTOs.Tags;
-using System.Diagnostics;
 
 namespace RealWorld.Services;
 
-public class TagService : ITagService
+public class TagService(AppDbContext context) : ITagService
 {
-    private readonly AppDbContext _context;
 
-    public TagService(
-        AppDbContext context
-    )
-    {
-        _context = context;
-    }
     public async Task<ServiceResult<TagListResponse>> GetTagsAsync()
     {
-        var tagList = await _context.Tags
+        List<string> tagList = await context.Tags
             .Select(t => t.TagText)
             .ToListAsync();
-        var response = new TagListResponse(tagList);
+        TagListResponse response = new(tagList);
 
         return ServiceResult<TagListResponse>.Ok(response);
     }

@@ -7,7 +7,7 @@ public class ArticleDto
     public string Body { get; set; } = "";
     public string Slug { get; set; } = "";
     public AuthorDto Author { get; set; }
-    public List<string> TagList { get; set; } = new List<string>();
+    public List<string> TagList { get; set; } = new();
     public bool Favorited { get; set; }
     public int FavoritesCount { get; set; }
     public string CreatedAt { get; set; }

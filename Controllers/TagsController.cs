@@ -1,20 +1,17 @@
 using RealWorld.Services.Interface;
 using Microsoft.AspNetCore.Mvc;
+using RealWorld.Common;
+using RealWorld.Models.DTOs.Tags;
 
 namespace RealWorld.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class TagsController : ApiControllerBase
+public class TagsController(
+    ITagService tagService
+    ) : ApiControllerBase
 {
-    private readonly ITagService _tagService;
-
-    public TagsController(
-        ITagService tagService
-    )
-    {
-        _tagService = tagService;
-    }
+    private readonly ITagService _tagService = tagService;
 
     /// <summary>
     /// Returns all tags, sorted alphabetically
@@ -22,7 +19,7 @@ public class TagsController : ApiControllerBase
     [HttpGet("")]
     public async Task<IActionResult> List()
     {
-        var result = await _tagService.GetTagsAsync();
+        ServiceResult<TagListResponse> result = await _tagService.GetTagsAsync();
         return HandleResult(result);
     }
 }

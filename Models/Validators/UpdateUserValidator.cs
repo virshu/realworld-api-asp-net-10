@@ -8,15 +8,15 @@ public class UpdateUserRequestValidator : AbstractValidator<UpdateUserRequest>
 {
     public UpdateUserRequestValidator(IConfiguration configuration)
     {
-        var allowedExtensions = configuration.GetSection("FileUpload:AllowedExtensions").Get<string[]>() ?? Array.Empty<string>();
-        var maxSizeBytes = configuration.GetValue<long>("FileUpload:MaxFileSizeBytes");
+        string[] allowedExtensions = configuration.GetSection("FileUpload:AllowedExtensions").Get<string[]>() ?? Array.Empty<string>();
+        long maxSizeBytes = configuration.GetValue<long>("FileUpload:MaxFileSizeBytes");
 
         When(x => x.user.Image != null && x.user.Image.Length > 0, () =>
         {
             RuleFor(x => x.user.Image)
                 .Must(file => 
                 {
-                    var extension = Path.GetExtension(file!.FileName).ToLowerInvariant();
+                    string extension = Path.GetExtension(file!.FileName).ToLowerInvariant();
                     return allowedExtensions.Contains(extension);
                 })
                 .WithMessage("Invalid file type.");

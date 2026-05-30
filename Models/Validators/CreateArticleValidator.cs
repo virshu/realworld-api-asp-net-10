@@ -1,12 +1,11 @@
 using FluentValidation;
-using RealWorld.Data;
 using RealWorld.Models.DTOs.Articles;
 
 namespace RealWorld.Models.Validators;
 
 public class CreateArticleValidator : AbstractValidator<CreateArticleRequest>
 {
-    public CreateArticleValidator(AppDbContext context)
+    public CreateArticleValidator()
     {
         RuleFor(x => x.article.Title)
             .NotEmpty().WithMessage("can't be blank");

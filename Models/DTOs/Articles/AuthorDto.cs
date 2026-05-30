@@ -1,5 +1,3 @@
-using RealWorld.Models.Entities;
-
 namespace RealWorld.Models.DTOs.Articles;
 
 public class AuthorDto

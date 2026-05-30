@@ -3,28 +3,22 @@ using RealWorld.Services.Interface;
 
 namespace RealWorld.Services;
 
-class HttpContextService : IHttpContextService
+class HttpContextService(
+    IHttpContextAccessor httpContextAccessor
+    ) : IHttpContextService
 {
-    private readonly IHttpContextAccessor _httpContextAccessor;
-
-    public HttpContextService(
-        IHttpContextAccessor httpContextAccessor
-    )
-    {
-        _httpContextAccessor = httpContextAccessor;
-    }
 
     public string GetBaseUrl()
     {
-        var request = _httpContextAccessor.HttpContext!.Request;
-        var baseUrl = $"{request.Scheme}://{request.Host}";
+        HttpRequest request = httpContextAccessor.HttpContext!.Request;
+        string baseUrl = $"{request.Scheme}://{request.Host}";
 
         return baseUrl;
     }
 
     public int? GetCurrentUserId()
     {
-        var userIdString = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        string? userIdString = httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if(userIdString == null)
         {
             return null;

@@ -4,25 +4,19 @@ using Microsoft.AspNetCore.Mvc;
 using RealWorld.Models.DTOs.Auth;
 using RealWorld.Extensions;
 using Mapster;
+using RealWorld.Common;
 
 namespace RealWorld.Controllers;
 
 [Route("api/user")]
 [ApiController]
-public class UsersController : ApiControllerBase
+public class UsersController(
+    IUserService userService,
+    IFileService fileService
+    ) : ApiControllerBase
 {
-    private readonly IUserService _userService;
-    private readonly IFileService _fileService;
-
-    public UsersController
-    (
-        IUserService userService,
-        IFileService fileService
-    )
-    {
-        _userService = userService;
-        _fileService = fileService;
-    }
+    private readonly IUserService _userService = userService;
+    private readonly IFileService _fileService = fileService;
 
     /// <summary>
     /// User login
@@ -30,7 +24,7 @@ public class UsersController : ApiControllerBase
     [HttpPost("login")]
     public async Task<ActionResult> Login(LoginRequest request)
     {
-        var result = await _userService.LoginAsync(request.user);
+        ServiceResult<UserResponse?> result = await _userService.LoginAsync(request.user);
         return HandleResult(result);
     }
 
@@ -40,7 +34,7 @@ public class UsersController : ApiControllerBase
     [HttpPost("")]
     public async Task<ActionResult> Register(RegisterRequest request)
     {
-        var result = await _userService.RegisterAsync(request.user);
+        ServiceResult<UserResponse> result = await _userService.RegisterAsync(request.user);
         return HandleResult(result);
     }
 
@@ -50,7 +44,7 @@ public class UsersController : ApiControllerBase
     [HttpPost("refresh")]
     public async Task<ActionResult> Refresh(TokenRequest request)
     {
-        var result = await _userService.RefreshAsync(request);
+        ServiceResult<UserResponse?> result = await _userService.RefreshAsync(request);
         return HandleResult(result);
     }
 
@@ -61,7 +55,7 @@ public class UsersController : ApiControllerBase
     [HttpPost("logout")]
     public async Task<ActionResult> Logout([FromBody] TokenRequest request)
     {
-        var result = await _userService.LogoutAsync(User.GetRequiredUserId(), request.RefreshToken);
+        ServiceResult<bool> result = await _userService.LogoutAsync(User.GetRequiredUserId(), request.RefreshToken);
         return HandleResult(result);
     }
 
@@ -72,10 +66,10 @@ public class UsersController : ApiControllerBase
     [HttpGet("")]
     public async Task<ActionResult> GetCurrentUser()
     {
-        var currentAccessToken = HttpContext.Request.Headers["Authorization"]
+        string currentAccessToken = HttpContext.Request.Headers["Authorization"]
             .FirstOrDefault()?.Split(" ").Last() ?? "";
 
-        var result = await _userService.GetCurrentUserAsync(currentAccessToken, User.GetRequiredUserId());
+        ServiceResult<UserResponse?> result = await _userService.GetCurrentUserAsync(currentAccessToken, User.GetRequiredUserId());
         return HandleResult(result);
     }
 
@@ -86,10 +80,10 @@ public class UsersController : ApiControllerBase
     [HttpGet("edit")]
     public async Task<ActionResult> EditUser()
     {
-        var currentAccessToken = HttpContext.Request.Headers["Authorization"]
+        string currentAccessToken = HttpContext.Request.Headers["Authorization"]
             .FirstOrDefault()?.Split(" ").Last() ?? "";
 
-        var result = await _userService.GetCurrentUserAsync(currentAccessToken, User.GetRequiredUserId());
+        ServiceResult<UserResponse?> result = await _userService.GetCurrentUserAsync(currentAccessToken, User.GetRequiredUserId());
         return HandleResult(result);
     }
 
@@ -101,20 +95,20 @@ public class UsersController : ApiControllerBase
     public async Task<ActionResult> UpdateUser ([FromForm] UpdateUserRequest request)
     {
         string? relativeImagePath = null;
-        var file = request.user.Image;
+        IFormFile? file = request.user.Image;
 
         // Profile image upload
         if (file != null && file.Length > 0)
         {
-            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            using var stream = file.OpenReadStream();
+            string extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            using Stream stream = file.OpenReadStream();
             relativeImagePath = await _fileService.UploadAsync(stream, extension);
         }
 
-        var updateDto = request.user.Adapt<UpdateUserDto>();
+        UpdateUserDto updateDto = request.user.Adapt<UpdateUserDto>();
         updateDto.Image = relativeImagePath;
 
-        var result = await _userService.UpdateUserAsync(updateDto, User.GetRequiredUserId());
+        ServiceResult<UserResponse?> result = await _userService.UpdateUserAsync(updateDto, User.GetRequiredUserId());
         return HandleResult(result);
     }
 }
