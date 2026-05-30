@@ -14,37 +14,28 @@ public class ArticlesController(
     IArticleService articleService
     ) : ApiControllerBase
 {
-    private readonly IArticleService _articleService = articleService;
 
     /// <summary>
-    /// Returns a paginated list of articles, optionally filtered by the author, tags or its favorited status for the user
+    /// Returns a paginated list of articles, optionally filtered by the author, tags or its favorite status for the user
     /// </summary>
-    /// <param name="tag">Tag</param>
-    /// <param name="author">Author name</param>
-    /// <param name="favorited">Show only articles favorited by the user</param>
-    /// <param name="limit">How many articles to show per page</param>
-    /// <param name="offset">Together with the limit controls the page the author is on</param>
+    /// <param name="query"></param>
     [AllowAnonymous]
     [HttpGet("")]
     public async Task<ActionResult> List([FromQuery] ArticleQueryParameters query)
     {
-        ServiceResult<ArticleListResponse> result = await _articleService.GetArticlesAsync(query, userId: User.GetOptionalUserId());
+        ServiceResult<ArticleListResponse> result = await articleService.GetArticlesAsync(query, userId: User.GetOptionalUserId());
         return HandleResult(result);
     }
 
     /// <summary>
     /// Returns a paginated list of articles from authors
-    /// the user is following, optionally filtered by the author, tags or its favorited status for the user
+    /// the user is following, optionally filtered by the author, tags or its favorite status for the user
     /// </summary>
-    /// <param name="tag">Tag</param>
-    /// <param name="author">Author name</param>
-    /// <param name="favorited">Show only articles favorited by the user</param>
-    /// <param name="limit">How many articles to show per page</param>
-    /// <param name="offset">Together with the limit controls the page the author is on</param>
+    /// <param name="query"></param>
     [HttpGet("feed")]
     public async Task<ActionResult> Feed([FromQuery] ArticleQueryParameters query)
     {
-        ServiceResult<ArticleListResponse> result = await _articleService.GetArticlesAsync(query, isFeed: true, userId: User.GetRequiredUserId());
+        ServiceResult<ArticleListResponse> result = await articleService.GetArticlesAsync(query, isFeed: true, userId: User.GetRequiredUserId());
         return HandleResult(result);
     }
 
@@ -56,7 +47,7 @@ public class ArticlesController(
     [HttpGet("{slug}")]
     public async Task<ActionResult> GetArticle(string slug)
     {
-        ServiceResult<ArticleResponse?> result = await _articleService.GetArticleBySlugAsync(slug, User.GetRequiredUserId());
+        ServiceResult<ArticleResponse?> result = await articleService.GetArticleBySlugAsync(slug, User.GetRequiredUserId());
         return HandleResult(result);
     }
 
@@ -66,7 +57,7 @@ public class ArticlesController(
     [HttpPost("")]
     public async Task<ActionResult> CreateArticle(CreateArticleRequest request)
     {
-        ServiceResult<ArticleResponse> result = await _articleService.CreateAsync(request.article, User.GetRequiredUserId());
+        ServiceResult<ArticleResponse> result = await articleService.CreateAsync(request.article, User.GetRequiredUserId());
         return HandleResult(result);
     }
 
@@ -76,7 +67,7 @@ public class ArticlesController(
     [HttpPut("{slug}")]
     public async Task<ActionResult> UpdateArticle(string slug, UpdateArticleRequest request)
     {
-        ServiceResult<ArticleResponse?> result = await _articleService.UpdateAsync(slug, request.article, User.GetRequiredUserId());
+        ServiceResult<ArticleResponse?> result = await articleService.UpdateAsync(slug, request.article, User.GetRequiredUserId());
         return HandleResult(result);
     }
 
@@ -86,7 +77,7 @@ public class ArticlesController(
     [HttpDelete("{slug}")]
     public async Task<ActionResult> DeleteArticle(string slug)
     {
-        ServiceResult<bool> result = await _articleService.DeleteAsync(slug, User.GetRequiredUserId());
+        ServiceResult<bool> result = await articleService.DeleteAsync(slug, User.GetRequiredUserId());
         return HandleResult(result);
     }
 
@@ -96,7 +87,7 @@ public class ArticlesController(
     [HttpPost("{slug}/favorite")]
     public async Task<ActionResult> FavoriteArticle(string slug)
     {
-        ServiceResult<ArticleResponse?> result = await _articleService.FavoriteArticleAsync(slug, User.GetRequiredUserId());
+        ServiceResult<ArticleResponse?> result = await articleService.FavoriteArticleAsync(slug, User.GetRequiredUserId());
         return HandleResult(result);
     }
 
@@ -106,7 +97,7 @@ public class ArticlesController(
     [HttpDelete("{slug}/favorite")]
     public async Task<ActionResult> UnfavoriteArticle(string slug)
     {
-        ServiceResult<ArticleResponse?> result = await _articleService.UnfavoriteArticleAsync(slug, User.GetRequiredUserId());
+        ServiceResult<ArticleResponse?> result = await articleService.UnfavoriteArticleAsync(slug, User.GetRequiredUserId());
         return HandleResult(result);
     }
 }

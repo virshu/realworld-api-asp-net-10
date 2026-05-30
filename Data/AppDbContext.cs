@@ -50,7 +50,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasOne(c => c.Article)
             .WithMany(a => a.Comments)
             .HasForeignKey(c => c.ArticleId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.ClientSetNull);
+
+        modelBuilder.Entity<User>()
+            .HasMany(u => u.FavoritedArticles)
+            .WithMany(a => a.FavoritedBy)
+            .UsingEntity<Dictionary<string, string>>(
+                "UserFavorites",
+                j => j.HasOne<Article>().WithMany().HasForeignKey("ArticleId").OnDelete(DeleteBehavior.ClientSetNull),
+                j => j.HasOne<User>().WithMany().HasForeignKey("UserId").OnDelete(DeleteBehavior.ClientSetNull)
+            );
 
         modelBuilder.Entity<User>()
             .HasMany(u => u.Following)

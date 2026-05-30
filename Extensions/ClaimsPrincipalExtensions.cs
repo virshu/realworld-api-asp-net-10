@@ -4,28 +4,27 @@ namespace RealWorld.Extensions;
 
 public static class ClaimsPrincipalExtensions
 {
-    // For [Authorize] endpoints (Throws if missing)
-    public static int GetRequiredUserId(this ClaimsPrincipal user)
+    extension(ClaimsPrincipal user)
     {
-        int? id = user.GetOptionalUserId();
-        if (id == null)
+        // For [Authorize] endpoints (Throws if missing)
+        public int GetRequiredUserId()
         {
-            throw new UnauthorizedAccessException("User ID not found.");
+            int? id = user.GetOptionalUserId();
+            return id ?? throw new UnauthorizedAccessException("User ID not found.");
         }
-        return id.Value;
-    }
 
-    // For [AllowAnonymous] endpoints (Returns null if missing)
-    public static int? GetOptionalUserId(this ClaimsPrincipal user)
-    {
-        // If the user isn't logged in, ClaimsPrincipal is empty.
-        Claim? claim = user.FindFirst(ClaimTypes.NameIdentifier) ?? user.FindFirst("id");
+        // For [AllowAnonymous] endpoints (Returns null if missing)
+        public int? GetOptionalUserId()
+        {
+            // If the user isn't logged in, ClaimsPrincipal is empty.
+            Claim? claim = user.FindFirst(ClaimTypes.NameIdentifier) ?? user.FindFirst("id");
         
-        if (claim != null && int.TryParse(claim.Value, out int userId))
-        {
-            return userId;
-        }
+            if (claim != null && int.TryParse(claim.Value, out int userId))
+            {
+                return userId;
+            }
 
-        return null;
+            return null;
+        }
     }
 }

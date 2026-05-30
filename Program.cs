@@ -4,9 +4,9 @@ using RealWorld.Data;
 using RealWorld.Services;
 using RealWorld.Services.Interface;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using RealWorld.Mappings;
 using RealWorld.Models.Validators.Filters;
 using RealWorld.Middleware;
@@ -66,7 +66,7 @@ builder.Services.AddControllers(options =>
 // Add database support
 string? connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySQL(connectionString));
+    options.UseSqlServer(connectionString));
     
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IUserService, UserService>();
